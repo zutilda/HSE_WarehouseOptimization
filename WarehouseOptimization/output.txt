@@ -1,0 +1,7 @@
+BoxA 50 100 1
+BoxB 80 120 1
+BoxC 40 90 2
+BoxD 60 110 2
+BoxE 30 70 1
+BoxF 90 130 3
+BoxG 70 140 4

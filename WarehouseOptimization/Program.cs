@@ -61,18 +61,47 @@ namespace WarehouseOptimization
 
                 if (!File.Exists(inputFile))
                 {
-                    Console.WriteLine($"Input file {inputFile} not found!");
+                    Console.WriteLine($"Ошибка: входной файл {inputFile} не найден!");
                     return;
                 }
 
                 try
                 {
                     var lines = File.ReadAllLines(inputFile);
-                    int containerCount = int.Parse(lines[0]);
 
-                    for (int i = 1; i <= containerCount; i++)
+                    if (lines.Length == 0)
                     {
-                        var containerData = lines[i].Split();
+                        Console.WriteLine("Ошибка: входной файл пуст!");
+                        return;
+                    }
+
+                    int containerCount;
+                    if (!int.TryParse(lines[0], out containerCount))
+                    {
+                        Console.WriteLine("Ошибка: первая строка должна содержать количество контейнеров!");
+                        return;
+                    }
+
+                    int lineIndex = 1;
+
+
+                    for (int i = 0; i < containerCount; i++)
+                    {
+                        if (lineIndex >= lines.Length)
+                        {
+                            Console.WriteLine("Ошибка: недостаточно строк в файле для контейнеров!");
+                            return;
+                        }
+
+                        var containerData = lines[lineIndex].Split();
+                        lineIndex++;
+
+                        if (containerData.Length != 3)
+                        {
+                            Console.WriteLine($"Ошибка: строка {lineIndex} не содержит 3 значения (ID MaxWeight MaxVolume)!");
+                            return;
+                        }
+
                         containers.Add(new Container
                         {
                             Id = int.Parse(containerData[0]),
@@ -81,9 +110,32 @@ namespace WarehouseOptimization
                         });
                     }
 
-                    for (int i = containerCount + 1; i < lines.Length; i++)
+
+                    if (lineIndex >= lines.Length || !int.TryParse(lines[lineIndex], out int cargoCount))
                     {
-                        var cargoData = lines[i].Split();
+                        Console.WriteLine("Ошибка: не указано количество грузов!");
+                        return;
+                    }
+                    lineIndex++;
+
+
+                    for (int i = 0; i < cargoCount; i++)
+                    {
+                        if (lineIndex >= lines.Length)
+                        {
+                            Console.WriteLine("Ошибка: недостаточно строк в файле для грузов!");
+                            return;
+                        }
+
+                        var cargoData = lines[lineIndex].Split();
+                        lineIndex++;
+
+                        if (cargoData.Length != 3)
+                        {
+                            Console.WriteLine($"Ошибка: строка {lineIndex} не содержит 3 значения (Name Weight Volume)!");
+                            return;
+                        }
+
                         cargos.Add(new Cargo
                         {
                             Name = cargoData[0],
@@ -94,19 +146,47 @@ namespace WarehouseOptimization
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Error reading input file: {ex.Message}");
+                    Console.WriteLine($"Ошибка при чтении файла: {ex.Message}");
                     return;
+                }
+
+
+                KnapsackSolver.Solve(cargos, containers);
+
+
+                try
+                {
+                    using (StreamWriter writer = new StreamWriter(outputFile))
+                    {
+                        foreach (var cargo in cargos)
+                        {
+                            writer.WriteLine($"{cargo.Name} {cargo.Weight} {cargo.Volume} {cargo.ContainerId}");
+                        }
+                    }
+                    Console.WriteLine("Output file generated: " + outputFile);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Ошибка при записи в файл: {ex.Message}");
                 }
             }
             else
             {
-                Console.WriteLine("Enter number of containers:");
+
+                Console.WriteLine("Введите количество контейнеров:");
                 int containerCount = int.Parse(Console.ReadLine());
 
                 for (int i = 0; i < containerCount; i++)
                 {
-                    Console.WriteLine($"Enter container {i + 1} (ID MaxWeight MaxVolume):");
+                    Console.WriteLine($"Введите контейнер {i + 1} (ID MaxWeight MaxVolume):");
                     var containerData = Console.ReadLine().Split();
+
+                    if (containerData.Length != 3)
+                    {
+                        Console.WriteLine("Ошибка: контейнер должен содержать 3 параметра!");
+                        return;
+                    }
+
                     containers.Add(new Container
                     {
                         Id = int.Parse(containerData[0]),
@@ -115,13 +195,20 @@ namespace WarehouseOptimization
                     });
                 }
 
-                Console.WriteLine("Enter number of cargos:");
+                Console.WriteLine("Введите количество грузов:");
                 int cargoCount = int.Parse(Console.ReadLine());
 
                 for (int i = 0; i < cargoCount; i++)
                 {
-                    Console.WriteLine($"Enter cargo {i + 1} (Name Weight Volume):");
+                    Console.WriteLine($"Введите груз {i + 1} (Name Weight Volume):");
                     var cargoData = Console.ReadLine().Split();
+
+                    if (cargoData.Length != 3)
+                    {
+                        Console.WriteLine("Ошибка: груз должен содержать 3 параметра!");
+                        return;
+                    }
+
                     cargos.Add(new Cargo
                     {
                         Name = cargoData[0],
@@ -129,31 +216,10 @@ namespace WarehouseOptimization
                         Volume = double.Parse(cargoData[2])
                     });
                 }
-            }
 
-            KnapsackSolver.Solve(cargos, containers);
+                KnapsackSolver.Solve(cargos, containers);
 
-            if (args.Length > 0 && args[0] == "--file")
-            {
-                try
-                {
-                    using (StreamWriter writer = new StreamWriter(args[2]))
-                    {
-                        foreach (var cargo in cargos)
-                        {
-                            writer.WriteLine($"{cargo.Name} {cargo.Weight} {cargo.Volume} {cargo.ContainerId}");
-                        }
-                    }
-                    Console.WriteLine("Output file generated: " + args[2]);
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Error writing output file: {ex.Message}");
-                }
-            }
-            else
-            {
-                Console.WriteLine("Result:");
+                Console.WriteLine("Результат:");
                 foreach (var cargo in cargos)
                 {
                     Console.WriteLine($"{cargo.Name} {cargo.Weight} {cargo.Volume} {cargo.ContainerId}");
